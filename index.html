@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .chat-container {
+        display: flex;
+        height: 100vh;
+      }
+      .message-box {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        background-color: #f7f7f7;
+      }
+      .message {
+        margin-bottom: 1rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+      }
+
+      .message.from {
+        background-color: #d1e7dd;
+        text-align: right;
+        max-width: 90%;
+      }
+      .message.to {
+        background-color: #f8d7da;
+        text-align: left;
+        max-width: 90%;
+      }
+      .clickable {
+        list-style: none;
+        padding: 5px;
+        margin: 5px 0;
+        cursor: pointer;
+        border-radius: 5px;
+      }
+
+      .clickable:hover {
+        background-color: #3b82f6;
+        color: #ffffff;
+      }
+    </style>
+  </head>
+  <body class="flex items-center justify-center bg-gray-100">
+    <div
+      id="register-form"
+      class="w-full max-w-2xl p-4 bg-white rounded shadow-md mt-[2rem]"
+    >
+      <div class="mb-4">
+        <h2 class="text-xl font-bold">Chat App</h2>
+      </div>
+      <div>
+        <div class="w-full">
+          <h3 class="text-lg font-semibold">Register</h3>
+          <input
+            id="register-username"
+            type="text"
+            placeholder="Username"
+            class="w-full p-2 mt-2 border rounded"
+          />
+          <input
+            id="register-password"
+            type="password"
+            placeholder="Password"
+            class="w-full p-2 mt-2 border rounded"
+          />
+          <button
+            onclick="register()"
+            class="w-full px-4 py-2 mt-2 text-white bg-green-500 rounded"
+          >
+            Register
+          </button>
+          <p class="mt-2">
+            Already have an account?
+            <a href="#" onclick="showLoginForm()" class="text-green-500"
+              >Login</a
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+    <div
+      id="login-form"
+      class="hidden w-full max-w-2xl p-4 bg-white rounded shadow-md mt-[2rem]"
+    >
+      <div class="mb-4">
+        <h2 class="text-xl font-bold">Chat App</h2>
+      </div>
+      <div>
+        <div>
+          <h3 class="text-lg font-semibold">Login</h3>
+          <input
+            id="login-username"
+            type="text"
+            placeholder="Username"
+            class="w-full p-2 mt-2 border rounded"
+          />
+          <input
+            id="login-password"
+            type="password"
+            placeholder="Password"
+            class="w-full p-2 mt-2 border rounded"
+          />
+          <button
+            onclick="login()"
+            class="w-full px-4 py-2 mt-2 text-white bg-green-500 rounded"
+          >
+            Login
+          </button>
+          <p class="mt-2">
+            Don't have an account?
+            <a href="#" onclick="showRegisterForm()" class="text-green-500"
+              >Register</a
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="chat-container"
+      class="hidden w-full max-w-5xl p-4 bg-white rounded shadow-md mt-[2rem]"
+    >
+      <div class="mb-4">
+        <h2 class="text-xl font-bold">Chat App</h2>
+      </div>
+
+      <div class="chat-container my-4">
+        <div class="w-1/4 p-4 bg-gray-100">
+          <div class="flex justify-between mb-4">
+            <h3 class="text-lg font-semibold">Users & Groups</h3>
+          </div>
+          <div id="users-list">
+            <h4 class="text-md font-semibold">Online Users</h4>
+            <ul id="online-user-list" class="list-disc pl-5"></ul>
+          </div>
+          <div id="groups-list" class="mt-4">
+            <h4 class="text-md font-semibold">Groups</h4>
+            <ul id="related-group-list" class="list-disc pl-5"></ul>
+          </div>
+          <button
+            onclick="logout()"
+            class="px-4 py-1 my-4 w-full text-white bg-red-500 rounded"
+          >
+            Logout
+          </button>
+        </div>
+        <div class="flex flex-col flex-grow px-4 bg-white rounded shadow-md">
+          <div class="message-box" id="messages"></div>
+          <div class="flex my-4">
+            <input
+              id="message"
+              type="text"
+              placeholder="Message"
+              class="w-full p-2 ml-2 border rounded"
+            />
+            <button
+              onclick="sendMessage()"
+              class="w-24 px-4 py-2 ml-2 text-white bg-green-500 rounded"
+            >
+              Send
+            </button>
+          </div>
+          <div class="mt-4">
+            <h3 class="text-lg font-semibold">Groups</h3>
+            <input
+              id="group-name"
+              type="text"
+              placeholder="Group Name"
+              class="w-full p-2 mt-2 border rounded"
+            />
+            <button
+              onclick="createGroup()"
+              class="w-full px-4 py-2 mt-2 text-white bg-green-500 rounded"
+            >
+              Create Group
+            </button>
+            <input
+              id="group-member"
+              type="text"
+              placeholder="Add Member"
+              class="w-full p-2 mt-2 border rounded"
+            />
+            <button
+              onclick="addToGroup()"
+              class="w-full px-4 py-2 mt-2 text-white bg-green-500 rounded"
+            >
+              Add to Group
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let socket;
+      let username;
+      let selectedUserOrGroup;
+
+      function initializeWebSocket() {
+        socket = new WebSocket("ws://localhost:1337");
+
+        socket.addEventListener("open", () => {
+          console.log("WebSocket connection established");
+        });
+
+        socket.addEventListener("message", (event) => {
+          handleSocketMessage(event.data);
+        });
+
+        socket.addEventListener("close", () => {
+          console.log("WebSocket connection closed");
+        });
+      }
+
+      function handleSocketMessage(data) {
+        const message = JSON.parse(data);
+        const { type, payload } = message;
+
+        switch (type) {
+          case "registered":
+            if (payload.success) {
+              alert("Registration successful. Please login.");
+              showLoginForm();
+            } else {
+              alert("Registration failed: " + payload.message);
+            }
+            break;
+          case "authenticated":
+            if (payload.success) {
+              username = payload.userName;
+              document
+                .getElementById("chat-container")
+                .classList.remove("hidden");
+            } else {
+              alert("Login failed");
+            }
+            break;
+          case "message":
+            displayMessage(payload.from, payload.text, payload.to);
+            break;
+          case "groupCreated":
+            if (payload.success) {
+              alert(`Group "${payload.groupName}" created successfully.`);
+            } else {
+              alert(`Failed to create group "${payload.groupName}".`);
+            }
+            break;
+          case "addedToGroup":
+            if (payload.success) {
+              alert(
+                `User "${payload.member}" added to group "${payload.groupName}".`
+              );
+            } else {
+              alert(`Failed to add user to group "${payload.groupName}".`);
+            }
+            break;
+          case "currentlyUpdatedUsersAndGroups":
+            populateOnlineUserAndGroupList(payload);
+            break;
+          case "conversationHistory":
+            conversationHistory(payload);
+            break;
+          case "logout":
+            alert(`${payload.message}`);
+            break;
+          case "error":
+            if (!username) return;
+            alert(`Error: ${payload.message}`);
+            break;
+          default:
+            console.warn(`Unknown message type: ${type}`);
+        }
+      }
+
+      function register() {
+        const userName = document.getElementById("register-username").value;
+        const password = document.getElementById("register-password").value;
+        if (userName && password) {
+          socket.send(
+            JSON.stringify({
+              type: "register",
+              payload: { userName, password },
+            })
+          );
+        } else {
+          alert("Username or Password cannot be empty !");
+        }
+      }
+
+      function login() {
+        const userName = document.getElementById("login-username").value;
+        const password = document.getElementById("login-password").value;
+        if (userName && password) {
+          socket.send(
+            JSON.stringify({
+              type: "authenticate",
+              payload: { userName, password },
+            })
+          );
+          document.getElementById("login-form").classList.add("hidden");
+        } else {
+          alert("Username or Password cannot be empty !");
+        }
+      }
+
+      function sendMessage() {
+        const to = selectedUserOrGroup;
+        const messageEl = document.getElementById("message");
+        const text = messageEl.value;
+        socket.send(JSON.stringify({ type: "message", payload: { to, text } }));
+        text.value = "";
+      }
+
+      function createGroup() {
+        const groupName = document.getElementById("group-name").value;
+        socket.send(
+          JSON.stringify({ type: "createGroup", payload: { groupName } })
+        );
+      }
+
+      function addToGroup() {
+        const groupName = document.getElementById("group-name").value;
+        const member = document.getElementById("group-member").value;
+        socket.send(
+          JSON.stringify({ type: "addToGroup", payload: { groupName, member } })
+        );
+      }
+
+      function displayMessage(from, text, to) {
+        if (selectedUserOrGroup === to || selectedUserOrGroup === from) {
+          const messageBox = document.getElementById("messages");
+          const innerFlexBox = document.createElement("div");
+
+          messageBox.appendChild(innerFlexBox);
+          innerFlexBox.style.display = "flex";
+          innerFlexBox.style.justifyContent =
+            from === username ? "end" : "start";
+
+          const messageDiv = document.createElement("div");
+
+          messageDiv.className = `message ${from === username ? "from" : "to"}`;
+          messageDiv.textContent = `${
+            from === username ? "You" : from
+          }: ${text}`;
+
+          innerFlexBox.appendChild(messageDiv);
+        }
+      }
+
+      function fetchConversation(recipient, payload) {
+        selectedUserOrGroup = recipient;
+        socket.send(
+          JSON.stringify({ type: "getConversation", payload: { recipient } })
+        );
+        populateOnlineUserAndGroupList(payload);
+      }
+
+      function populateOnlineUserAndGroupList(payload) {
+        const userListEl = document.getElementById("online-user-list");
+        while (userListEl.lastElementChild) {
+          userListEl.removeChild(userListEl.lastElementChild);
+        }
+        payload.users
+          .filter((user) => user !== username)
+          .map((user) => {
+            const userItem = document.createElement("li");
+            userItem.textContent = user;
+            userItem.className = "clickable";
+            userItem.onclick = () => fetchConversation(user, payload);
+
+            if (userItem.textContent === selectedUserOrGroup) {
+              userItem.style.backgroundColor = "#3b82f6";
+              userItem.style.color = "#ffffff";
+            }
+            userListEl.appendChild(userItem);
+          });
+
+        const groupListEl = document.getElementById("related-group-list");
+        while (groupListEl.lastElementChild) {
+          groupListEl.removeChild(groupListEl.lastElementChild);
+        }
+        if (payload.groups) {
+          payload.groups.map((groupName) => {
+            const groupItem = document.createElement("li");
+            groupItem.textContent = groupName;
+            groupItem.className = "clickable";
+            groupItem.onclick = () => fetchConversation(groupName, payload);
+            if (groupItem.textContent === selectedUserOrGroup) {
+              groupItem.style.backgroundColor = "#3b82f6";
+              groupItem.style.color = "#ffffff";
+            }
+            groupListEl.appendChild(groupItem);
+          });
+        }
+      }
+
+      function conversationHistory(payload) {
+        const messageBox = document.getElementById("messages");
+        while (messageBox.lastElementChild) {
+          messageBox.removeChild(messageBox.lastElementChild);
+        }
+        if (payload.length > 0) {
+          payload.map((message) => {
+            const innerFlexBox = document.createElement("div");
+            innerFlexBox.style.display = "flex";
+            innerFlexBox.style.justifyContent =
+              message.sender === username ? "end" : "start";
+
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${
+              message.sender === username ? "from" : "to"
+            }`;
+            messageDiv.textContent = `${
+              message.sender === username ? "You" : message.sender
+            }: ${message.message}`;
+            innerFlexBox.appendChild(messageDiv);
+            messageBox.appendChild(innerFlexBox);
+          });
+        }
+      }
+
+      function showLoginForm() {
+        document.getElementById("register-username").value = "";
+        document.getElementById("register-password").value = "";
+        document.getElementById("register-form").classList.add("hidden");
+        document.getElementById("login-form").classList.remove("hidden");
+      }
+
+      function showRegisterForm() {
+        document.getElementById("login-form").classList.add("hidden");
+        document.getElementById("register-form").classList.remove("hidden");
+      }
+
+      function logout() {
+        document.getElementById("chat-container").classList.add("hidden");
+        username = null;
+        showRegisterForm();
+        socket.send(JSON.stringify({ type: "close", payload: { username } }));
+        // socket.close();
+      }
+
+      // Initialize WebSocket connection on page load
+      window.onload = initializeWebSocket;
+    </script>
+  </body>
+</html>
