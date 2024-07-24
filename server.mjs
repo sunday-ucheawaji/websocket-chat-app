@@ -83,6 +83,9 @@ function handleMessage(socket, message) {
     case "getConversation":
       sendConversationHistory(socket, payload);
       break;
+    case "close":
+      onSocketClose(socket, payload);
+
     default:
       sendError(socket, "Unknown message type");
   }
@@ -143,15 +146,6 @@ function sendMessage(socket, { to, text }) {
       const conversation = conversations.get(conversationKey) || [];
       conversation.push({ sender: userName, message: text });
       conversations.set(conversationKey, conversation);
-
-      // send(recipientSocket, {
-      //   type: "conversationHistory",
-      //   payload: conversation,
-      // });
-      // send(socket, {
-      //   type: "conversationHistory",
-      //   payload: conversation,
-      // });
     }
   }
 }
@@ -207,10 +201,6 @@ function sendConversationHistory(socket, { recipient }) {
 
   const conversationKey = getConversationKey(userName, recipient);
   const conversation = conversations.get(conversationKey) || [];
-  console.log({
-    type: "conversationHistory",
-    payload: conversation,
-  });
   send(socket, {
     type: "conversationHistory",
     payload: conversation,
@@ -267,10 +257,25 @@ function send(socket, message) {
   const messageString = JSON.stringify(message);
   const messageBuffer = Buffer.from(messageString);
 
-  const frame = Buffer.alloc(messageBuffer.length + 2);
-  frame[0] = 0x81; // Text frame
-  frame[1] = messageBuffer.length;
-  messageBuffer.copy(frame, 2);
+  let frame;
+  if (messageBuffer.length < 126) {
+    frame = Buffer.alloc(2 + messageBuffer.length);
+    frame[0] = 0x81; // Text frame
+    frame[1] = messageBuffer.length; // Payload length
+    messageBuffer.copy(frame, 2);
+  } else if (messageBuffer.length < 65536) {
+    frame = Buffer.alloc(4 + messageBuffer.length);
+    frame[0] = 0x81; // Text frame
+    frame[1] = 126; // Payload length indicator for 126 - 65535 bytes
+    frame.writeUInt16BE(messageBuffer.length, 2); // Actual payload length
+    messageBuffer.copy(frame, 4);
+  } else {
+    frame = Buffer.alloc(10 + messageBuffer.length);
+    frame[0] = 0x81; // Text frame
+    frame[1] = 127; // Payload length indicator for > 65535 bytes
+    frame.writeBigUInt64BE(BigInt(messageBuffer.length), 2); // Actual payload length
+    messageBuffer.copy(frame, 10);
+  }
 
   socket.write(frame);
 }
@@ -278,9 +283,18 @@ function send(socket, message) {
 function onSocketClose(socket) {
   const userName = socket.userName;
   if (userName) {
+    const updateMessage = {
+      type: "logout",
+      payload: { message: "Logged Out" },
+    };
+    send(socket, updateMessage);
     users.delete(socket);
     groups.forEach((members) => members.delete(userName));
-    broadcastUpdateUsersAndGroups(socket);
+    if (users.size > 0) {
+      users.forEach((_value, userSocket) => {
+        broadcastUpdateUsersAndGroups(userSocket);
+      });
+    }
   }
 }
 
