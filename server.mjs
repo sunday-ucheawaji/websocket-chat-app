@@ -125,7 +125,7 @@ function sendMessage(socket, { to, text, date }) {
   if (groups.has(to)) {
     broadcastToGroup(to, {
       type: "message",
-      payload: { from: userName, text, to },
+      payload: { from: userName, text, to, date },
     });
   } else {
     const recipientSocket = Array.from(users.entries()).find(

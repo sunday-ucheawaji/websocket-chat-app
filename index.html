@@ -8,7 +8,8 @@
     <style>
       .chat-container {
         display: flex;
-        height: 100vh;
+        height: 85vh;
+        padding: 0 2rem;
       }
       .message-box {
         flex-grow: 1;
@@ -31,6 +32,22 @@
         background-color: #ffffff;
         text-align: left;
         max-width: 90%;
+      }
+      .message-box-placeholder {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .message-box-placeholder p {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+
+      .message-box-placeholder span {
+        color: #808080;
       }
       .clickable {
         list-style: none;
@@ -124,7 +141,7 @@
 
     <div
       id="chat-container"
-      class="hidden w-full max-w-5xl p-4 bg-white rounded shadow-md pt-[2rem]"
+      class="hidden w-full max-w-5xl p-4 bg-white rounded shadow-md"
     >
       <div class="mb-4">
         <h2 class="text-xl font-bold">Chat App</h2>
@@ -150,8 +167,15 @@
             Logout
           </button>
         </div>
-        <div class="flex flex-col flex-grow px-4 bg-white rounded shadow-md">
-          <div class="message-box" id="messages"></div>
+        <div
+          class="flex flex-col flex-grow px-4 pb-[2rem] bg-white rounded shadow-md"
+        >
+          <div class="message-box" id="messages">
+            <div id="message-box-placeholder" class="message-box-placeholder">
+              <p>Chat App for Desktop</p>
+              <span>Send and receive messages</span>
+            </div>
+          </div>
           <div class="flex my-4">
             <input
               id="message"
@@ -399,7 +423,13 @@
             const userItem = document.createElement("li");
             userItem.textContent = user;
             userItem.className = "clickable";
-            userItem.onclick = () => fetchConversation(user, payload);
+            userItem.onclick = () => {
+              document
+                .getElementById("message-box-placeholder")
+                .classList.add("hidden");
+
+              fetchConversation(user, payload);
+            };
 
             if (userItem.textContent === selectedUserOrGroup) {
               userItem.style.backgroundColor = "#ffffff";
@@ -461,7 +491,6 @@
         username = null;
         showRegisterForm();
         socket.send(JSON.stringify({ type: "close", payload: { username } }));
-        // socket.close();
       }
 
       // Initialize WebSocket connection on page load
