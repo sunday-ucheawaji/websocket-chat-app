@@ -118,7 +118,7 @@ function authenticateUser(socket, { userName, password }) {
   }
 }
 
-function sendMessage(socket, { to, text }) {
+function sendMessage(socket, { to, text, date }) {
   const userName = socket.userName;
   if (!userName) return sendError(socket, "User not authenticated");
 
@@ -134,17 +134,17 @@ function sendMessage(socket, { to, text }) {
     if (recipientSocket) {
       send(recipientSocket, {
         type: "message",
-        payload: { from: userName, text, to },
+        payload: { from: userName, text, to, date },
       });
 
       send(socket, {
         type: "message",
-        payload: { from: userName, text, to },
+        payload: { from: userName, text, to, date },
       });
 
       const conversationKey = getConversationKey(userName, to);
       const conversation = conversations.get(conversationKey) || [];
-      conversation.push({ sender: userName, message: text });
+      conversation.push({ sender: userName, message: text, to, date });
       conversations.set(conversationKey, conversation);
     }
   }

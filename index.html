@@ -28,7 +28,7 @@
         max-width: 90%;
       }
       .message.to {
-        background-color: #f8d7da;
+        background-color: #ffffff;
         text-align: left;
         max-width: 90%;
       }
@@ -41,8 +41,8 @@
       }
 
       .clickable:hover {
-        background-color: #3b82f6;
-        color: #ffffff;
+        background-color: #ffffff;
+        color: #000000;
       }
     </style>
   </head>
@@ -124,7 +124,7 @@
 
     <div
       id="chat-container"
-      class="hidden w-full max-w-5xl p-4 bg-white rounded shadow-md mt-[2rem]"
+      class="hidden w-full max-w-5xl p-4 bg-white rounded shadow-md pt-[2rem]"
     >
       <div class="mb-4">
         <h2 class="text-xl font-bold">Chat App</h2>
@@ -242,7 +242,12 @@
             }
             break;
           case "message":
-            displayMessage(payload.from, payload.text, payload.to);
+            displayMessage(
+              payload.from,
+              payload.text,
+              payload.to,
+              payload.date
+            );
             break;
           case "groupCreated":
             if (payload.success) {
@@ -313,8 +318,11 @@
         const to = selectedUserOrGroup;
         const messageEl = document.getElementById("message");
         const text = messageEl.value;
-        socket.send(JSON.stringify({ type: "message", payload: { to, text } }));
-        text.value = "";
+        const date = new Date();
+        socket.send(
+          JSON.stringify({ type: "message", payload: { to, text, date } })
+        );
+        messageEl.value = "";
       }
 
       function createGroup() {
@@ -332,12 +340,25 @@
         );
       }
 
-      function displayMessage(from, text, to) {
+      function formatTime(dateString) {
+        const date = new Date(dateString);
+        let hours = date.getHours();
+        const minutes = date.getMinutes();
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const formattedMinutes = minutes < 10 ? "0" + minutes : minutes;
+        return `${hours}:${formattedMinutes} ${ampm}`;
+      }
+
+      function displayMessage(from, text, to, date) {
         if (selectedUserOrGroup === to || selectedUserOrGroup === from) {
           const messageBox = document.getElementById("messages");
           const innerFlexBox = document.createElement("div");
+          const dateFlexBox = document.createElement("div");
 
           messageBox.appendChild(innerFlexBox);
+
           innerFlexBox.style.display = "flex";
           innerFlexBox.style.justifyContent =
             from === username ? "end" : "start";
@@ -345,11 +366,17 @@
           const messageDiv = document.createElement("div");
 
           messageDiv.className = `message ${from === username ? "from" : "to"}`;
-          messageDiv.textContent = `${
-            from === username ? "You" : from
-          }: ${text}`;
+          messageDiv.textContent = text;
+
+          dateFlexBox.style.display = "flex";
+          dateFlexBox.style.justifyContent = "end";
+          dateFlexBox.style.fontSize = "11px";
+          dateFlexBox.style.color = "#808080";
+
+          dateFlexBox.textContent = formatTime(date);
 
           innerFlexBox.appendChild(messageDiv);
+          messageDiv.appendChild(dateFlexBox);
         }
       }
 
@@ -375,8 +402,8 @@
             userItem.onclick = () => fetchConversation(user, payload);
 
             if (userItem.textContent === selectedUserOrGroup) {
-              userItem.style.backgroundColor = "#3b82f6";
-              userItem.style.color = "#ffffff";
+              userItem.style.backgroundColor = "#ffffff";
+              userItem.style.color = "#000000";
             }
             userListEl.appendChild(userItem);
           });
@@ -392,8 +419,8 @@
             groupItem.className = "clickable";
             groupItem.onclick = () => fetchConversation(groupName, payload);
             if (groupItem.textContent === selectedUserOrGroup) {
-              groupItem.style.backgroundColor = "#3b82f6";
-              groupItem.style.color = "#ffffff";
+              groupItem.style.backgroundColor = "#ffffff";
+              groupItem.style.color = "#000000";
             }
             groupListEl.appendChild(groupItem);
           });
@@ -407,20 +434,12 @@
         }
         if (payload.length > 0) {
           payload.map((message) => {
-            const innerFlexBox = document.createElement("div");
-            innerFlexBox.style.display = "flex";
-            innerFlexBox.style.justifyContent =
-              message.sender === username ? "end" : "start";
-
-            const messageDiv = document.createElement("div");
-            messageDiv.className = `message ${
-              message.sender === username ? "from" : "to"
-            }`;
-            messageDiv.textContent = `${
-              message.sender === username ? "You" : message.sender
-            }: ${message.message}`;
-            innerFlexBox.appendChild(messageDiv);
-            messageBox.appendChild(innerFlexBox);
+            displayMessage(
+              message.sender,
+              message.message,
+              message.to,
+              message.date
+            );
           });
         }
       }
