@@ -20,8 +20,6 @@ This project is a WebSocket-based chat application that allows users to register
 
 - **Online User List**: Displays the list of currently online users.
 
-- **Responsive Design**: Uses Tailwind CSS for styling and responsive design.
-
 ## Getting Started
 
 To run the chat application locally, follow these steps:
@@ -120,7 +118,7 @@ Open `index.html` in your web browser. You can do this by navigating to the file
 
 ## Contact
 
-For any questions or feedback, please contact the project maintainer at ``.
+For any questions or feedback, please contact the project maintainer at `sundayucheawaji@gmail.com`.
 
 ---
 
